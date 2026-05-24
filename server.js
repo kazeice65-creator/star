@@ -99,6 +99,65 @@ async function handleLarkEvent(body) {
 }
 
 async function callHermes(userText, context = {}) {
+  if (!HERMES_API_URL) {
+    return `Hermes 测试回复：我收到了你的消息：「${userText}」`;
+  }
+
+  try {
+    const baseUrl = HERMES_API_URL.replace(/\/$/, "");
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HERMES_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "hermes-agent",
+        messages: [
+          {
+            role: "system",
+            content: "你是部署在 Lark 里的 Hermes Agent，请用中文简洁、准确地回复用户。"
+          },
+          {
+            role: "user",
+            content: userText
+          }
+        ],
+        temperature: 0.7
+      })
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      console.error("Hermes API status:", response.status);
+      console.error("Hermes API error body:", text);
+      return `Hermes API error: ${text}`;
+    }
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("Hermes response is not JSON:", text);
+      return "Hermes 返回内容不是 JSON，请检查 Hermes API 地址。";
+    }
+
+    const reply = data?.choices?.[0]?.message?.content;
+
+    if (!reply) {
+      console.error("Hermes response missing reply:", JSON.stringify(data));
+      return "Hermes 已返回，但没有找到回复内容。";
+    }
+
+    return reply;
+  } catch (err) {
+    console.error("callHermes error:", err);
+    return "连接 Hermes 失败，请检查 HERMES_API_URL 是否正确。";
+  }
+}
   // 如果你已经有 Hermes Agent API，就会走这里
   if (HERMES_API_URL) {
     try {
