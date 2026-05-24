@@ -1,0 +1,4 @@
+mkdir lark-hermes-agent
+cd lark-hermes-agent
+npm init -y
+npm install express
